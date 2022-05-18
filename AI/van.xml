@@ -1,0 +1,34 @@
+<prefab version="0.6.0">
+	<group id_="1239492480" open_="true" name="instance=MOD/technicals/van.xml" pos="21.9 0.1 -3.4" rot="0.0 0.0 0.0">
+		<script id_="493516192" open_="true" pos="0.0 0.0 0.0" file="MOD/AI/AVF_AI.lua">
+			<vehicle id_="321735872" open_="true" tags="cfg=ai technicalVehicle" pos="0.2 0.0 0.2" rot="0.0 0.0 0.0" driven="false" sound="van" spring="0.5" damping="0.7" topspeed="31" acceleration="3" strength="2" antispin="0" antiroll="0.1"  difflock="0.5" steerassist="0.0">
+				<body id_="271466688" open_="true" pos="-0.1 0.8 -0.4" rot="0.0 0.0 0.0" dynamic="true">
+					<vox id_="709601600" open_="true" pos="0.05 -0.5 0.2" rot="0.0 180.0 0.0" density="1.2" strength="2" file="MOD/technicals/van.vox" object="body">
+						<location id_="1862908928" tags="exhaust" pos="-0.5 0.1 -2.5" rot="0.0 180.0 0.0"/>
+						<light id_="1414091008" pos="0.95 1.2 -2.5" rot="180.0 0.0 180.0" type="area" color="1 .1 .1" size="0.1 0.2" unshadowed="0.3" glare="0.2"/>
+						<light id_="68554840" pos="0.95 1.0 -2.5" rot="180.0 0.0 180.0" type="area" size="0.1 0.2" unshadowed="0.3"/>
+						<light id_="674144448" pos="-0.85 1.2 -2.5" rot="180.0 0.0 180.0" type="area" color="1 .1 .1" size="0.1 0.2" unshadowed="0.3" glare="0.2"/>
+						<light id_="1791798016" pos="-0.85 1.0 -2.5" rot="180.0 0.0 180.0" type="area" size="0.1 0.2" unshadowed="0.3"/>
+						<light id_="2046289920" pos="-0.75 0.95 2.4" rot="0.0 0.0 0.0" type="cone" color="1 .9 .8" scale="20" angle="90" penumbra="30" size="0.1" unshadowed="0.3" glare="0.3"/>
+						<light id_="1550086528" pos="0.85 0.95 2.4" rot="0.0 0.0 0.0" type="cone" color="1 .9 .8" scale="20" angle="90" penumbra="30" size="0.1" unshadowed="0.3" glare="0.3"/>
+						<location id_="109058560" tags="vital" pos="0.05 0.75 1.9"/>
+						<location id_="141828560" tags="player" pos="0.5 1.6 0.9" rot="0.0 0.0 0.0"/>
+					</vox>
+					<wheel id_="1349271936" open_="true" name="bl" pos="-0.75 -0.45 1.75" drive="0" travel="-0.1 0.2">
+						<vox id_="613651008" pos="-0.1 -0.35 -0.05" rot="0.0 180.0 0.0" file="MOD/technicals/van.vox" object="wheel_bl"/>
+					</wheel>
+					<wheel id_="844548416" open_="true" name="br" pos="0.8 -0.45 1.75" drive="0" travel="-0.1 0.2">
+						<vox id_="1250896384" pos="0.15 -0.35 -0.05" rot="0.0 -180.0 0.0" file="MOD/technicals/van.vox" object="wheel_br"/>
+					</wheel>
+					<wheel id_="1557296000" open_="true" name="fl" pos="-0.75 -0.45 -1.65" drive="1" steer="1" travel="-0.1 0.2">
+						<vox id_="1995693056" pos="-0.1 -0.35 -0.05" rot="0.0 180.0 0.0" file="MOD/technicals/van.vox" object="wheel_fl"/>
+					</wheel>
+					<wheel id_="1354842880" open_="true" name="fr" pos="0.75 -0.45 -1.65" drive="1" steer="1" travel="-0.1 0.2">
+						<vox id_="972154816" pos="0.2 -0.35 -0.05" rot="0.0 -180.0 0.0" file="MOD/technicals/van.vox" object="wheel_fr"/>
+					</wheel>
+				</body>
+			</vehicle>
+		</script>
+	</group>
+</prefab>
+

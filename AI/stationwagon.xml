@@ -1,0 +1,34 @@
+<prefab version="0.6.0">
+	<group id_="440559872" open_="true" name="instance=MOD/techincals/stationwagon.xml" pos="9.9 0.1 -3.4" rot="0.0 0.0 0.0">
+		<script id_="493516192" open_="true" pos="0.0 0.0 0.0" file="MOD/technicals/AVF_AI.lua">
+			<vehicle id_="748401280" open_="true" tags="cfg=ai technicalVehicle" rot="0.0 0.0 0.0" driven="false" sound="stationwagon1" spring="0.6" damping="0.7" topspeed="30" acceleration="3" strength="3" antispin="0" antiroll="0.2" steerassist="0.0">
+				<body id_="1227498624" open_="true" pos="0.0 0.4 -0.3" rot="0.0 0.0 0.0" dynamic="true">
+					<vox id_="2097083392" open_="true" pos="0.05 -0.2 0.3" rot="0.0 -179.99998 0.0" density="1.5" strength="2" file="MOD/technicals/stationwagon.vox" object="body">
+						<location id_="364664576" tags="exhaust" pos="0.4 0.0 -2.1" rot="0.00001 180.0 -0.00001"/>
+						<location id_="2093019904" tags="vital" pos="0.1 0.6 1.5" rot="0.00001 180.0 -0.00001"/>
+						<light id_="170272928" pos="0.7 0.65 -2.3" rot="0.00001 180.0 -0.00001" type="area" color="1 .1 .1" size="0.2 0.1" unshadowed="0.2" glare="0.2"/>
+						<light id_="1477533824" pos="-0.6 0.65 -2.3" rot="0.00001 180.0 -0.00001" type="area" color="1 .1 .1" size="0.2 0.1" unshadowed="0.2" glare="0.2"/>
+						<light id_="329731744" pos="-0.45 0.5 2.1" rot="0.0 0.0 0.0" type="cone" color="1 .9 .8" scale="20" angle="90" penumbra="30" size="0.1" unshadowed="0.2" glare="0.3"/>
+						<light id_="433088320" pos="0.55 0.5 2.1" rot="0.0 0.0 0.0" type="cone" color="1 .9 .8" scale="20" angle="90" penumbra="30" size="0.1" unshadowed="0.2" glare="0.3"/>
+						<light id_="565610176" pos="-0.6 0.55 -2.3" rot="0.00001 180.0 -0.00001" type="area" color="1 .8 .7" scale="3" size="0.2 0.1" unshadowed="0.2"/>
+						<light id_="726707520" pos="0.7 0.55 -2.3" rot="0.00001 180.0 -0.00001" type="area" color="1 .8 .7" scale="3" size="0.2 0.1" unshadowed="0.2"/>
+						<location id_="609390912" tags="player" pos="0.4 1.1 0.1" rot="0.0 0.0 0.0"/>
+					</vox>
+					<wheel id_="424699200" open_="true" name="bl" pos="-0.55 -0.1 1.5" rot="0.0 0.0 0.0" drive="0" travel="-0.2 0.1">
+						<vox id_="584813440" pos="-0.1 -0.3 0.0" rot="0.0 -179.99998 0.0" file="MOD/technicals/stationwagon.vox" object="wheel_bl"/>
+					</wheel>
+					<wheel id_="1875427072" open_="true" name="br" pos="0.55 -0.1 1.5" rot="0.0 0.0 0.0" drive="0" travel="-0.2 0.1">
+						<vox id_="1607106304" pos="0.2 -0.3 0.0" rot="0.0 -180.0 0.0" file="MOD/technicals/stationwagon.vox" object="wheel_br"/>
+					</wheel>
+					<wheel id_="287392896" open_="true" name="fl" pos="-0.55 -0.1 -1.2" rot="0.0 0.0 0.0" drive="1" steer="1" travel="-0.2 0.1">
+						<vox id_="669884352" pos="-0.1 -0.3 0.0" rot="0.0 -179.99998 0.0" file="MOD/technicals/stationwagon.vox" object="wheel_fl"/>
+					</wheel>
+					<wheel id_="373315840" open_="true" name="fr" pos="0.55 -0.1 -1.2" rot="0.0 0.0 0.0" drive="1" steer="1" travel="-0.2 0.1">
+						<vox id_="1502963328" pos="0.2 -0.3 0.0" rot="0.0 -180.0 0.0" file="MOD/technicals/stationwagon.vox" object="wheel_fr"/>
+					</wheel>
+				</body>
+			</vehicle>
+		</script>
+	</group>
+</prefab>
+

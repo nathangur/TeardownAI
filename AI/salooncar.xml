@@ -1,0 +1,33 @@
+<prefab version="0.5.3">
+	<group id_="213660400" open_="true" name="Saloon car" pos="-1.8 0.1 -11.9" rot="0.0 -143.7 0.0">
+		<script id_="493516192" open_="true" pos="0.0 0.0 0.0" file="MOD/technicals/AVF_AI.lua">
+			<vehicle id_="1595899008" open_="true" tags="cfg=ai technicalVehicle" rot="0.0 0.0 0.0" sound="small1 0.8" spring="1.0" damping="1.5" topspeed="30" acceleration="3" strength="4" antiroll="0.2" difflock="0.5" steerassist="0.0">
+				<body id_="1884471680" open_="true" pos="0.0 0.4 -0.15" rot="0.0 0.0 0.0" dynamic="true">
+					<vox id_="325209472" pos="0.05 -0.3 0.15" rot="0 180 0" density="1.2" strength="2" file="MOD/technicals/salooncar.vox" object="body">
+						<light id_="388521120" pos="0.6 0.65 -2.1" rot="0 180 0" type="area" color="1 .1 .1" size="0.2 0.1" unshadowed="0.3" glare="0.2"/>
+						<light id_="840484992" pos="0.75 0.65 -2.1" rot="0 180 0" type="area" size="0.1 0.1" unshadowed="0.3"/>
+						<light id_="1727044480" pos="-0.65 0.65 -2.1" rot="0 180 0" type="area" size="0.1 0.1" unshadowed="0.3"/>
+						<light id_="237451424" pos="-0.5 0.65 -2.1" rot="0 180 0" type="area" color="1 .1 .1" size="0.2 0.1" unshadowed="0.3" glare="0.2"/>
+						<light id_="53808340" pos="-0.5 0.55 2.1" rot="0.0 0.0 0.0" type="cone" color="1 .9 .8" scale="20" angle="90" penumbra="30" size="0.1" unshadowed="0.2" glare="0.3"/>
+						<light id_="1880932480" pos="0.6 0.55 2.1" rot="0.0 0.0 0.0" type="cone" color="1 .9 .8" scale="20" angle="90" penumbra="30" size="0.1" unshadowed="0.2" glare="0.3"/>
+						<location id_="1621852800" tags="exhaust" pos="0.45 0.15 -2.05" rot="180.0 0.0 180.0"/>
+						<location id_="1458527104" tags="vital" pos="0.05 0.55 1.35" rot="180.0 0.0 180.0"/>
+						<location id_="322850048" tags="player" pos="0.35 1.15 0.1" rot="0.0 0.0 0.0"/>
+					</vox>
+					<wheel id_="1546088576" name="bl" pos="-0.65 -0.1 1.45" drive="1" travel="-0.1 0.1">
+						<vox id_="911595840" pos="-0.1 -0.3 0.0" rot="0.0 180.0 0.0" file="MOD/technicals/salooncar.vox" object="wheel_bl"/>
+					</wheel>
+					<wheel id_="1036449536" name="br" pos="0.65 -0.1 1.45" drive="1" travel="-0.1 0.1">
+						<vox id_="124001680" pos="0.1 -0.3 0.0" rot="0.0 -180.0 0.0" file="MOD/technicals/salooncar.vox" object="wheel_br"/>
+					</wheel>
+					<wheel id_="1692963712" name="fl" pos="-0.65 -0.1 -1.15" rot="0.0 0.0 0.0" drive="0" steer="1" travel="-0.1 0.1">
+						<vox id_="1320696576" pos="-0.1 -0.3 0.0" rot="0.0 180.0 0.0" file="MOD/technicals/salooncar.vox" object="wheel_fl"/>
+					</wheel>
+					<wheel id_="905107392" name="fr" pos="0.65 -0.1 -1.15" drive="0" steer="1" travel="-0.1 0.1">
+						<vox id_="1328692480" pos="0.1 -0.3 0.0" rot="0.0 -180.0 0.0" file="MOD/technicals/salooncar.vox" object="wheel_fr"/>
+					</wheel>
+				</body>
+			</vehicle>
+		</script>
+	</group>
+</prefab>

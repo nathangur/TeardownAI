@@ -1,0 +1,33 @@
+<prefab version="0.6.2">
+	<group id_="75764240" open_="true" name="suv2" pos="13.4 0.2 -9.4">
+		<script id_="493516192" open_="true" pos="0.0 0.0 0.0" file="MOD/technicals/AVF_AI.lua">
+			<vehicle id_="816562880" open_="true" tags="cfg=ai technicalVehicle" name="suv2" pos="0.1 0.0 0.0" driven="false" sound="suv2" spring="0.8" damping="0.8" topspeed="34" acceleration="2" strength="5" antispin="0" antiroll="0.2" difflock="0.5" steerassist="0.0">
+				<body id_="1033172544" open_="true" pos="-0.05 0.6 -0.25" rot="0.0 0.0 0.0" dynamic="true">
+					<vox id_="1019147008" open_="true" pos="0.05 -0.2 0.25" rot="0 180 0" density="2" strength="3" file="MOD/technicals/suv2.vox" object="body">
+						<light id_="1660849152" pos="0.75 0.55 -2.1" rot="0.0 180.0 0.0" type="area" size="0.1 0.1" unshadowed="0.3"/>
+						<light id_="79303400" pos="-0.65 0.55 -2.1" rot="0.0 180.0 0.0" type="area" size="0.1 0.1" unshadowed="0.3"/>
+						<light id_="587303936" pos="0.05 1.55 -2.1" rot="0.0 -180.0 0.0" type="area" color="1 .1 .1" size="0.3 0.1" unshadowed="0.2" glare="0.2"/>
+						<light id_="988015488" pos="0.65 0.65 2.1" rot="0.0 0.0 0.0" type="cone" color="1 .9 .8" scale="30" angle="90" penumbra="30" size="0.1" unshadowed="0.2" glare="0.35"/>
+						<light id_="1669959168" pos="-0.55 0.65 2.1" rot="0.0 0.0 0.0" type="cone" color="1 .9 .8" scale="30" angle="90" penumbra="30" size="0.1" unshadowed="0.2" glare="0.35"/>
+						<location id_="2137980288" tags="exhaust" pos="0.5 0.05 -2.1" rot="-180.0 360.0 -180.0"/>
+						<location id_="1983437056" tags="vital" pos="0.05 0.55 1.4" rot="-180.0 360.0 -180.0"/>
+						<location id_="1318861440" tags="player" pos="0.35 1.25 0.25" rot="0.0 0.0 0.0"/>
+					</vox>
+					<wheel id_="2056579712" open_="true" name="bl" pos="-0.65 -0.15 1.4" drive="1" travel="-0.1 0.2">
+						<vox id_="1425036160" pos="-0.1 -0.45 -0.05" rot="0.0 -180.0 0.0" file="MOD/technicals/suv2.vox" object="wheel_bl"/>
+					</wheel>
+					<wheel id_="1912522752" open_="true" name="br" pos="0.65 -0.15 1.4" drive="1" travel="-0.1 0.2">
+						<vox id_="27264640" pos="0.1 -0.45 -0.05" rot="0 180 0" file="MOD/technicals/suv2.vox" object="wheel_br"/>
+					</wheel>
+					<wheel id_="482505472" open_="true" name="fl" pos="-0.75 -0.15 -1.4" drive="1" steer="1" travel="-0.1 0.2">
+						<vox id_="837732288" pos="0.0 -0.45 -0.05" rot="0 180 0" file="MOD/technicals/suv2.vox" object="wheel_fl"/>
+					</wheel>
+					<wheel id_="815841920" open_="true" name="fr" pos="0.65 -0.15 -1.4" drive="1" steer="1" travel="-0.1 0.2">
+						<vox id_="1679593600" pos="0.1 -0.45 -0.05" rot="0 180 0" file="MOD/technicals/suv2.vox" object="wheel_fr"/>
+					</wheel>
+				</body>
+			</vehicle>
+		</script>
+	</group>
+</prefab>
+

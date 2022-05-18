@@ -1,0 +1,40 @@
+<prefab version="1.0.0">
+	<group name="instance=MOD/assets/SUV_SDV/sdv_suv3.xml" pos="84.0 0.3 -37.6" rot="0.0 0.0 0.0">
+		<script pos="0.0 0.0 0.0" file="MOD/AI/AI.lua">
+			<script file="MOD/init.lua">
+				<vehicle name="SDV" tags="aicar" pos="0.0 0.0 0.0" rot="0.0 0.0 0.0" driven="false" sound="pickup 1.1" spring="1.2" damping="0.9" topspeed="80" acceleration="8" strength="8" antispin="0" antiroll="0.2" difflock="1" steerassist="0.15" friction="1.5">
+					<body pos="-0.05 0.5 -0.25" rot="0.0 0.0 0.0" dynamic="true">
+						<vox pos="0.05 -0.2 0.25" rot="0 180 0" density="2" strength="3" file="MOD/assets/SUV_SDV/sdv_suv3.vox" object="body">
+							<light pos="0.85 0.85 -2.3" rot="0.0 -180.0 0.0" type="area" size="0.1 0.1" unshadowed="0.3"/>
+							<light pos="-0.75 0.85 -2.3" rot="0.0 -180.0 0.0" type="area" size="0.1 0.1" unshadowed="0.3"/>
+							<light pos="0.85 1.0 -2.3" rot="0.0 180.0 0.0" type="area" color="1 .1 .1" size="0.1 0.2" unshadowed="0.2"/>
+							<light pos="-0.75 1.0 -2.3" rot="0.0 180.0 0.0" type="area" color="1 .1 .1" size="0.1 0.2" unshadowed="0.2"/>
+							<light pos="0.7 0.7 2.0" rot="0.0 0.0 0.0" type="cone" color="1 .9 .8" scale="50" angle="50" penumbra="15" size="0.1" unshadowed="0.2"/>
+							<light pos="-0.6 0.7 2.0" rot="0.0 0.0 0.0" type="cone" color="1 .9 .8" scale="50" angle="50" penumbra="15" size="0.1" unshadowed="0.2"/>
+							<location tags="exhaust" pos="0.5 0.2 -2.3" rot="-180.0 360.0 -180.0"/>
+							<location tags="vital" pos="0.05 0.65 1.2" rot="-180.0 360.0 -180.0"/>
+							<location tags="player" pos="0.45 1.3 0.0" rot="0.0 0.0 0.0"/>
+							<joint tags="sdv_camera_roof_joint" pos="0.05 2.1 -0.25" rot="-90" type="hinge" rotstrength="0.00005" rotspring="0" collide="true"/>
+							<vox tags="sdv_camera_roof" pos="0.05 2.1 -0.15" prop="true" file="MOD/assets/SUV_SDV/sdv_suv3_top2.vox"/>
+						</vox>
+						<wheel name="bl" pos="-0.65 -0.05 1.8" drive="1" travel="-0.1 0.2">
+							<vox pos="-0.1 -0.45 -0.05" rot="0.0 -180.0 0.0" file="MOD/assets/SUV_SDV/sdv_suv3.vox" object="wheeL_bl"/>
+						</wheel>
+						<wheel name="br" pos="0.75 -0.05 1.8" drive="1" travel="-0.1 0.2">
+							<vox pos="0.1 -0.45 -0.05" rot="0 180 0" file="MOD/assets/SUV_SDV/sdv_suv3.vox" object="wheel_br"/>
+						</wheel>
+						<wheel name="fl" pos="-0.65 -0.05 -1.2" drive="1" steer="1" travel="-0.1 0.2">
+							<vox pos="-0.1 -0.45 -0.05" rot="0 180 0" file="MOD/assets/SUV_SDV/sdv_suv3.vox" object="wheel_fl"/>
+						</wheel>
+						<wheel name="fr" pos="0.75 -0.05 -1.2" drive="1" steer="1" travel="-0.1 0.2">
+							<vox pos="0.1 -0.45 -0.05" rot="0.0 -180.0 0.0" file="MOD/assets/SUV_SDV/sdv_suv3.vox" object="wheel_fr"/>
+						</wheel>
+						<vox pos="0.8 0.25 0.2" desc="Löckelle Automation" file="MOD/assets/SUV_SDV/sdv_suv3_decal.vox"/>
+						<vox pos="-0.8 0.25 0.0" rot="0.0 180.0 0.0" desc="Löckelle Automation" file="MOD/assets/SUV_SDV/sdv_suv3_decal.vox"/>
+					</body>
+				</vehicle>
+			</script>
+		</script>
+	</group>
+</prefab>
+

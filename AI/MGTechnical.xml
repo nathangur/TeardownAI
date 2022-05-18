@@ -1,0 +1,45 @@
+<prefab version="0.5.3">
+	<group id_="1160123520" open_="true" name="MGTechnical" pos="-0.1 0.0 0.0">
+		<vehicle id_="607490240" name="MGTechnical" tags="cfg=vehicle technicalVehicle" pos="0.1 0.0 0.0" rot="0.0 0.0 0.0" driven="false" sound="suv2" spring="0.8" damping="0.8" topspeed="60" acceleration="2" strength="5" antispin="0" antiroll="0.2" difflock="0.5" steerassist="0.0">
+			<body id_="2076897024" tags="component=body" pos="-0.05 0.6 -0.25" rot="0.0 0.0 0.0" dynamic="true">
+				<vox id_="1224942592" tags="component=chassis" pos="0.05 -0.2 0.25" rot="0 180 0" density="2" strength="3" file="MOD/prefabs/technicals/technical.vox" object="bodyturret">
+					<light id_="896456128" pos="0.75 0.55 -2.1" rot="0.0 180.0 0.0" type="area" size="0.1 0.1" unshadowed="0.3"/>
+					<light id_="1142362240" pos="-0.65 0.55 -2.1" rot="0.0 180.0 0.0" type="area" size="0.1 0.1" unshadowed="0.3"/>
+					<light id_="1808314112" pos="0.65 0.65 2.1" rot="0.0 0.0 0.0" type="cone" color="1 .9 .8" scale="30" angle="90" penumbra="30" size="0.1" unshadowed="0.2" glare="0.35"/>
+					<light id_="1265184128" pos="-0.55 0.65 2.1" rot="0.0 0.0 0.0" type="cone" color="1 .9 .8" scale="30" angle="90" penumbra="30" size="0.1" unshadowed="0.2" glare="0.35"/>
+					<location id_="1935068544" tags="exhaust" pos="0.5 0.05 -2.1" rot="-180.0 360.0 -180.0"/>
+					<location id_="106174800" tags="vital" pos="0.05 0.55 1.4" rot="-180.0 360.0 -180.0"/>
+					<location id_="1333149184" tags="player" pos="0.35 1.25 0.25" rot="0.0 0.0 0.0"/>
+					<vox id_="1181227392" tags="component=gun weaponType=DSHK group=primary 
+						@barrels
+						@barrels1x=.3
+						@barrels1y=.5
+						@barrels1z=-.3
+
+						interact=mountedGun" pos="0 1.6 -.9" rot="0.0 0 0.0" density="1.2" strength="2" prop="true" file="MOD/prefabs/technicals/technical.vox" object="MG">
+						<joint id_="545358336" tags="component=gunJoint" pos="0.05  0 -.7" rot="0 -90  0.0 " type="hinge" size="0.5" rotstrength="0.001" rotspring="00" limits="-30 5" sound="true"/>
+					</vox>
+					<vox id_="1938804224" tags="component=turret turretGroup=mainTurret" pos="0 .6 -1.5" rot="0.0 0 0.0" density="1.2" strength="2" prop="true" file="MOD/prefabs/technicals/technical.vox" object="turretMount2">
+						<joint id_="1003024128" tags="component=turretJoint" pos="0.05  0 0" rot="90 0 0.0" type="hinge" size="0.5" rotstrength=".001" rotspring="0" sound="true"/>
+					</vox>
+					<vox id_="782875328" tags="technicalMGTrigger hook" pos="0 .8 0.4" rot="-45 0 0" file="MOD/prefabs/technicals/technical.vox" object="trigger">
+						<joint id_="71831840" pos="0.0   0 0 " rot="0 90 0" type="ball" size=".1" rotstrength=".5" rotspring="0" sound="true"/>
+					</vox>
+				</vox>
+				<wheel id_="97851216" name="bl" pos="-0.65 -0.15 1.9" drive="1" travel="-0.1 0.2">
+					<vox id_="308103552" pos="-0.1 -0.45 -0.05" rot="0.0 -180.0 0.0" file="MOD/prefabs/technicals/technical.vox" object="wheel_bl"/>
+				</wheel>
+				<wheel id_="804044736" name="br" pos="0.65 -0.15 1.9" drive="1" travel="-0.1 0.2">
+					<vox id_="1774036736" pos="0.1 -0.45 -0.05" rot="0 180 0" file="MOD/prefabs/technicals/technical.vox" object="wheel_br"/>
+				</wheel>
+				<wheel id_="822395904" name="fl" pos="-0.75 -0.15 -1.4" drive="1" steer="1" travel="-0.1 0.2">
+					<vox id_="947249600" pos="0.0 -0.45 -0.05" rot="0 180 0" file="MOD/prefabs/technicals/technical.vox" object="wheel_fl"/>
+				</wheel>
+				<wheel id_="402284512" name="fr" pos="0.65 -0.15 -1.4" drive="1" steer="1" travel="-0.1 0.2">
+					<vox id_="785431360" pos="0.1 -0.45 -0.05" rot="0 180 0" file="MOD/prefabs/technicals/technical.vox" object="wheel_fr"/>
+				</wheel>
+			</body>
+		</vehicle>
+	</group>
+</prefab>
+

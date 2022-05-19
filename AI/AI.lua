@@ -1,4 +1,4 @@
---Credit to Elboydo's old ai mod for reference and help.
+--Credit to Elboydo's old ai mod for some reference.
 detectRange = 5--2.5--3
 
 isAiActive = true
@@ -12,7 +12,7 @@ generalPos = initialPos
 
 gAmount = 1
 
-testHeight = 5
+testHeight = 1
 drivePower = 3
 
 detectPoints = {
@@ -118,8 +118,7 @@ detectColour = Vec(1,1,0)
 clearColour = Vec(0,1,0)
 
 aiStarted = true
-aiNodes = 1
-currentNode = nil
+aiNodes = 3
 
 reset = 1
 resetTimer = reset 
@@ -151,16 +150,18 @@ function init()
 	local carTransform = GetVehicleTransform(vehicle.id)
 	localPos = TransformToLocalPoint(carTransform, vlpos)
 
+	currentNode = nil
 	nodeloc = FindLocation("node")
 	nodes = GetLocationTransform(nodeLoc).pos --nodePos aka the location of the node
 	--local value = GetTagValue(vehicle.id, "aicar")
 	--nodes = FindLocations("node",true)
-
+--[[
 	for key,value in ipairs(nodes) do
 		if(tonumber(GetTagValue(value, "node"))==aiNodes) then 
 			currentNode = value
 		end
 	end
+	]]
 
 end
 
@@ -219,8 +220,10 @@ function eyes()
 	return eyes
 end
 
+
 function markLoc()
 	if GetTime() <= 5 then
+		initialPos = GetLocationTransform(nodeLoc).pos
 		initialPos = nodes --Remember! Nodes is the global get location transform
 		generalPos = VecAdd(initialPos,Vec(math.random(-0,0),0,math.random(-0,0)))
 	end
@@ -248,7 +251,7 @@ function markLoc()
 		DebugWatch("node2: ",currentNode)
 		DebugWatch('initialPos',initialPos)
 		DebugWatch("generalPos",VecLength(generalPos))
-		--SpawnParticle("fire", generalPos, Vec(0,5,0), 0.5, 1)
+		SpawnParticle("fire", generalPos, Vec(0,5,0), 0.5, 1)
 	end
 
 	if(isAiActive and (GetVehicleHealth(vehicle.id)<0.1 or  IsPointInWater(GetVehicleTransform(vehicle.id).pos))) then
@@ -262,7 +265,7 @@ end
 function ripUpdate()
 	if(isAiActive) then 
 		targetAmount = vehicleDetection()
-		-- DebugWatch("targetAmount:",VecStr(targetAmount.target ))
+		DebugWatch("targetAmount:",VecStr(targetAmount.target ))
 
 		targetAmount.target = MAV(targetAmount.target)
 
@@ -299,14 +302,14 @@ function ripUpdate()
 	-- DebugWatch("velocity:", VecLength(GetBodyVelocity(GetVehicleBody(vehicle.id))))
 end
 
-function scanPos(vehicleTransform,detect,boundsSize)
+function scanPos(detect,boundsSize)
 
 	QueryRejectVehicle(vehicle.id)
     local fwdPos = TransformToParentPoint(vehicleTransform,detect)
     local direction = VecSub(fwdPos,vehicleTransform.pos)
     hit,dist,normal, shape = QueryRaycast(vehicleTransform.pos, direction, VecLength(direction)*.5,boundsSize[1]*.1)
     
-    if (hit) then
+    if hit then
 		local hitPoint = VecAdd(vehicleTransform.pos, VecScale(direction, dist))
 		local mat = GetShapeMaterialAtPosition(shape, hitPoint)
 		--DebugPrint("Raycast hit voxel made out of " .. mat)
@@ -327,7 +330,7 @@ end
 function vehicleDetection()
 
 	local vehicleBody = GetVehicleBody(vehicle.id)
-	local vehicleTransform = GetVehicleTransform(vehicle.id)
+	--local vehicleTransform = GetVehicleTransform(vehicle.id)
 	local min,max = GetBodyBounds(vehicleBody)
 	vehicleTransform.pos = TransformToParentPoint(vehicleTransform,Vec(0,testHeight,0))
 	local vehicleTransformOrig = TransformCopy(vehicleTransform) 
@@ -344,7 +347,7 @@ function vehicleDetection()
 
 	if(VecLength(generalPos)> 0.5 and VecLength(VecSub(GetVehicleTransform(vehicle.id).pos,generalPos))>1) then	
 		for key,detect in ipairs(detectPoints) do 
-			vehicleTransform = GetVehicleTransform(vehicle.id)
+			--vehicleTransform = GetVehicleTransform(vehicle.id)
 			vehicleTransform.pos = TransformToParentPoint(vehicleTransform,Vec(0,testHeight*.25,0))
 			if(detect[3] <0) then
 				vehicleTransform.pos = TransformToParentPoint(vehicleTransform,Vec(0,0,-boundsSize[3]*.50))
@@ -367,7 +370,7 @@ function vehicleDetection()
 		    local lineColour = detectColour
 		    local amountModifider = 5
 
-		    if(hit) then
+		    if hit then
 				local hitPoint = VecAdd(vehicleTransform.pos, VecScale(direction, dist))
 				local mat,r,g,b  = GetShapeMaterialAtPosition(shape, hitPoint)
 				if(mat =="masonry") then
@@ -392,7 +395,7 @@ function vehicleDetection()
 		    amounts[key] = amounts[key] * amountModifider
 
 		    DebugWatch("amounts: "..key,amounts[key].." | "..VecStr(detect))
-		    if(hit )then
+		    if hit then
 		    	lineColour = hitColour
 		    else
 			    if amounts[key] < bestAmount.val  then
@@ -421,7 +424,7 @@ function MAV(targetAmount)
 
 end
 
-function controlVehicle( targetAmount)
+function controlVehicle(targetAmount)
 	local hBrake = false
 	if(VecLength(generalPos)> 0.5) then
 		local targetMove = VecNormalize(targetAmount.target)

@@ -1,6 +1,6 @@
 function init()
 	camera_roof_joint = FindJoint('sdv_camera_roof_joint')
-	vehicle = FindVehicle('sdv')
+	vehicle = FindVehicle('aicar')
 	vehicle_forced_active = false
 end
 function tick(dt)

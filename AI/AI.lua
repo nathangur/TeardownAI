@@ -7,8 +7,9 @@ vehicle = {}
 
 maxSpeed = 20
 
-initialPos = Vec(0,0,0) 
-generalPos = initialPos
+--initialPos = Vec(0,0,0) 
+--generalPos = initialPos
+generalPos = Vec(0,0,0)
 
 gAmount = 1
 
@@ -117,8 +118,9 @@ hitColour = Vec(1,0,0)
 detectColour = Vec(1,1,0)
 clearColour = Vec(0,1,0)
 
-aiStarted = true
-aiNodes = 3
+aiStarted = nil
+aiNodes = 1
+currentNode = nil
 
 reset = 1
 resetTimer = reset 
@@ -150,18 +152,16 @@ function init()
 	local carTransform = GetVehicleTransform(vehicle.id)
 	localPos = TransformToLocalPoint(carTransform, vlpos)
 
-	currentNode = nil
 	nodeloc = FindLocation("node")
 	nodes = GetLocationTransform(nodeLoc).pos --nodePos aka the location of the node
 	--local value = GetTagValue(vehicle.id, "aicar")
 	--nodes = FindLocations("node",true)
---[[
+
 	for key,value in ipairs(nodes) do
 		if(tonumber(GetTagValue(value, "node"))==aiNodes) then 
 			currentNode = value
 		end
 	end
-	]]
 
 end
 
@@ -173,7 +173,7 @@ function tick(dt)
 	hit, point, normal, shape = QueryClosestPoint(GetCameraTransform().pos, 10)
 	if hit then
 		local mat,r,g,b = GetShapeMaterialAtPosition(shape, point)
-		--DebugWatch("Raycast hit voxel made out of ", mat.." | r:"..r.."g:"..g.."b:"..b)
+		DebugWatch("Raycast hit voxel made out of ", mat.." | r:"..r.."g:"..g.."b:"..b)
 	end
 
 	markLoc()
@@ -191,8 +191,8 @@ function eyes()
 	local closest = {} --Closest node to the vehicle
 	local closestDist = 100 --Node finding distance
 	local closestIndex = 0 --Node finding index
-	for key,node in ipairs(nodes) do
-		local dist = VecLength(VecSub(node,vehiclePos)) --dump the nodes and vehicle Positions into a distance variable 
+	for key,nodes in ipairs(nodes) do
+		local dist = VecLength(VecSub(nodes,vehiclePos)) --dump the nodes and vehicle Positions into a distance variable 
 		if dist < closestDist then --if the distance is less than the closest distance then...
 			closestDist = dist --the closest distance is the distance
 			closestIndex = key --dump that into the key index
@@ -236,7 +236,7 @@ function markLoc()
 		vecFind = Vec(1, 1 ,1)
 		if currentNode and worldPos <= vecFind then
 			aiNodes = (aiNodes%#nodes)+1
-			for key,value in ipairs(nodes) do 
+			for key,value in ipairs(aiNodes) do 
 				
 				if(tonumber(GetTagValue(value, "node"))==aiNodes) then 
 					currentNode = value
@@ -299,7 +299,7 @@ function ripUpdate()
 	DebugWatch("Vehicle ",vehicle.id)
 
 
-	-- DebugWatch("velocity:", VecLength(GetBodyVelocity(GetVehicleBody(vehicle.id))))
+	DebugWatch("velocity:", VecLength(GetBodyVelocity(GetVehicleBody(vehicle.id))))
 end
 
 function scanPos(detect,boundsSize)
@@ -312,7 +312,7 @@ function scanPos(detect,boundsSize)
     if hit then
 		local hitPoint = VecAdd(vehicleTransform.pos, VecScale(direction, dist))
 		local mat = GetShapeMaterialAtPosition(shape, hitPoint)
-		--DebugPrint("Raycast hit voxel made out of " .. mat)
+		DebugPrint("Raycast hit voxel made out of " .. mat)
     end
 
 	return hit,dist,normal, shape
@@ -330,7 +330,7 @@ end
 function vehicleDetection()
 
 	local vehicleBody = GetVehicleBody(vehicle.id)
-	--local vehicleTransform = GetVehicleTransform(vehicle.id)
+	local vehicleTransform = GetVehicleTransform(vehicle.id)
 	local min,max = GetBodyBounds(vehicleBody)
 	vehicleTransform.pos = TransformToParentPoint(vehicleTransform,Vec(0,testHeight,0))
 	local vehicleTransformOrig = TransformCopy(vehicleTransform) 
@@ -406,7 +406,6 @@ function vehicleDetection()
 		    end
 		    DebugLine(vehicleTransform.pos, fwdPos, lineColour[1], lineColour[2], lineColour[3])
 
-
 		end
 	end
 	DebugLine(vehicleTransform.pos, fwd, 1, 0, 0)
@@ -424,13 +423,13 @@ function MAV(targetAmount)
 
 end
 
-function controlVehicle(targetAmount)
+function controlVehicle( targetCost)
 	local hBrake = false
-	if(VecLength(generalPos)> 0.5) then
-		local targetMove = VecNormalize(targetAmount.target)
+	if(VecLength(goalPos)> 0.5) then
+		local targetMove = VecNormalize(targetCost.target)
 
-		if(VecLength(VecSub(GetVehicleTransform(vehicle.id).pos,generalPos))>2) then
-
+		if(VecLength(VecSub(GetVehicleTransform(vehicle.id).pos,goalPos))>2) then
+			--DebugWatch("pre updated",VecStr(targetMove))
 			if(targetMove[1] ~= 0 and targetMove[3] ==0) then 
 				targetMove[3] = 1
 				targetMove[1] = -targetMove[1]
@@ -441,7 +440,8 @@ function controlVehicle(targetAmount)
 			end 
 
 			DriveVehicle(vehicle.id, -targetMove[3]*drivePower,-targetMove[1], hBrake)
-
+			--DebugWatch("post updated",VecStr(targetMove))
+			--DebugWatch("motion2",VecStr(detectPoints[targetCost.key]))
 		else 
 			DriveVehicle(vehicle.id, 0,0, true)
 		end
@@ -459,13 +459,13 @@ end
 function vehicleMovement(vel,angVel)
 	local vehicleTransform = GetBodyTransform(vehicle.body)
 	local targetVel = 	TransformToParentPoint(vehicleTransform,vel)
-	targetVel = VecSub(targetVel, vehicleTransform.pos)
-	local targetAngVel = 	angVel---TransformToParentPoint(vehicleTransform,angVel)
+	targetVelocity = VecSub(targetVel, vehicleTransform)
+	local targetAngVel = angVel---TransformToParentPoint(vehicleTransform,angVel)
 	local currentVel = GetBodyVelocity(vehicle.body)
 	local currentAngVel = GetBodyAngularVelocity(vehicle.body)
 
 	if(VecLength(currentVel)<maxSpeed) then
-		SetBodyVelocity(vehicle.body,VecAdd(currentVel,targetVel))
+		SetBodyVelocity(vehicle.body,VecAdd(currentVel,targetVelocity))
 	end
 	SetBodyAngularVelocity(vehicle.body, VecAdd(currentAngVel,targetAngVel))
 
@@ -497,5 +497,4 @@ function inRange(min,max,value)
 		else
 			return false
 		end
-
 end

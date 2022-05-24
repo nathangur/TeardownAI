@@ -54,7 +54,7 @@ ai = {
 	[4] = 0.8,
 	[5] = 0.8,
 	[6] = 0.7,
-			} ,
+	},
 
 	directions = {
 		forward = Vec(0,0,1),
@@ -105,8 +105,8 @@ ai = {
 		}
 }
 targetMoves = {
-	list        = {},
-	target      = Vec(0,0,0),
+	list = {},
+	target = Vec(0,0,0),
 	targetIndex = 1
 }
 
@@ -173,7 +173,7 @@ function tick(dt)
 	hit, point, normal, shape = QueryClosestPoint(GetCameraTransform().pos, 10)
 	if hit then
 		local mat,r,g,b = GetShapeMaterialAtPosition(shape, point)
-		DebugWatch("Raycast hit voxel made out of ", mat.." | r:"..r.."g:"..g.."b:"..b)
+		--DebugWatch("Raycast hit voxel made out of ", mat.." | r:"..r.."g:"..g.."b:"..b)
 	end
 
 	markLoc()

@@ -56,12 +56,25 @@ function init()
 				.z : float
 	]]
 	
+	timer = {
+		raycast = 0,
+		edges = 0,
+		regionMapping = 0,
+		regionMerging = 0,
+		regionColoring = 0,
+		pathfinder = 0,
+		total = 0,
+		display = true
+	}
+	
 	status = 0
+	
+	displayRegions = false
 	
 	step = 1.0 -- default 1, max 4
 	radiusSize = step / 2
-	maxDeltaPerMeter = 1.5 --0.75
-	connex8 = true
+	maxDeltaPerMeter = 1.1 --0.75
+	connex8 = false
 	
 	maxStage = 10
 	
@@ -87,7 +100,6 @@ function init()
 	world.aa = floorVec(world.aa)
 	world.bb = floorVec(world.bb)
 	
-	
 	addPointToProcess(world.aa, world.bb)
 	
 end
@@ -96,32 +108,52 @@ end
 function tick(dt)
 	--processDebugCross()
 	--pointsDebugCross()
-	if status > 3 and status < 5 then
-		--edgesDebugLine(true, 0)
+	
+	DrawLine(world.aa, world.bb, 1, 0, 0, 1)
+	
+	if displayRegions then
+		edgesDebugLine(true, 0)
 	end
 	if status > 3 then
 		displayPath()
 	end
 	
+	if timer.display then
+		debugWatchTable(timer)
+	end
+	
+	if InputPressed('shift') then
+		displayRegions = not displayRegions
+	end
+	
 	clearConsole()
 	DebugPrint("Status: " .. status .. "." .. rg.status)
+	if status > 0 and status < 4 then
+		timer.total = timer.total + dt
+	end
 	
 	if status == 0 and InputPressed("c") then
 		status = 1
-	
-	elseif status == 2 then
-		processEdges(process.batchSizeEdges)
-		DebugPrint(process.i .. " / " .. #points)
-		
+
 	elseif status == 1 then
 		processPoint(process.batchSize)
+		timer.raycast = timer.raycast + dt
 		DebugPrint(process.i .. " / " .. #process.points)
+			
+	elseif status == 2 then
+		processEdges(process.batchSizeEdges)
+		timer.edges = timer.edges + dt
+		DebugPrint(process.i .. " / " .. #points)
 		
 	elseif status == 3 then
 		if rg.status == 1 then
+			timer.regionMapping = timer.regionMapping + dt
 			DebugPrint(rg.i .. " / " .. #points)
 		elseif rg.status == 2 then
+			timer.regionMerging = timer.regionMerging + dt
 			DebugPrint(rg.i .. " / " .. #points)
+		elseif rg.status == 3 then
+			timer.regionColoring = timer.regionColoring + dt
 		end
 		regionGrowing(rg.batchSize)
 		
@@ -129,6 +161,7 @@ function tick(dt)
 		if VecLength(points.pf.a) > 0 and VecLength(points.pf.b) > 0 then
 			status = 5
 			resetPathfinder()
+			timer.pathfinder = 0
 		elseif InputPressed("grab") then
 			points.pf.b = GetPlayerTransform().pos
 		elseif InputPressed("usetool") then
@@ -138,6 +171,7 @@ function tick(dt)
 	elseif status == 5 then
 		pathfinderDebugCross()
 		computePath(points.pf.batchSize)
+		timer.pathfinder = timer.pathfinder + dt
 		DebugPrint("Computing")
 		
 	elseif status == 6 then
@@ -228,6 +262,14 @@ end
 
 function importFromRegistry()
 	--TODO
+end
+
+function debugWatchTable(t)
+	for k, v in pairs(t) do
+		if type(v) ~= "boolean" then
+			DebugWatch(k, string.format("%.1f", v))
+		end
+	end
 end
 
 ---------------------------------
@@ -401,9 +443,9 @@ function processPoint(batchSize, s)
 		if addIndex == nil then
 			addIndex = #points + 1
 			--DebugPrint(addIndex)
-			if indexList[deepcopy(process.points[index].x)] == nil then
+			--if indexList[deepcopy(process.points[index].x)] == nil then
 				--indexList[deepcopy(process.points[index].x)] = {}
-			end
+			--end
 			--indexList[deepcopy(process.points[index].x)][deepcopy(process.points[index].z)] = addIndex
 		end
 		
@@ -413,11 +455,11 @@ function processPoint(batchSize, s)
 		local toIgnore = {}
 		local stage = 1
 		local offset = 0
-		local bonusOffset = 1.0
+		local bonusOffset = s
 		local dist = nil
 		
 		while hit and stage <= maxStage do
-			hit, hitPos, shapeHit, dist = downRaycast(Vec(process.points[index].x, world.bb[2] - offset, process.points[index].z), world.bb[2] - world.aa[2] - offset, false, false, s / 2, toIgnore)
+			hit, hitPos, shapeHit, dist = downRaycast(Vec(process.points[index].x, world.bb[2] - offset, process.points[index].z), world.bb[2] - world.aa[2] - offset, false, false, radiusSize, toIgnore)
 			if hit then
 				points[addIndex] = {}
 				points[addIndex].pos = hitPos
@@ -426,9 +468,9 @@ function processPoint(batchSize, s)
 				points[addIndex].rgIndex = -1
 				points[addIndex].color = rg.NO_COLOR
 				points[addIndex].neighbors = addNeighbors(hitPos, s, connex8)
-				points[addIndex].pf = {}
-				points[addIndex].pf.color = 0
-				points[addIndex].pf.dist = {}
+				--points[addIndex].pf = {}
+				--points[addIndex].pf.color = 0
+				--points[addIndex].pf.dist = {}
 				
 				if indexList[hitPos[1]] == nil then
 					indexList[hitPos[1]] = {}
@@ -439,19 +481,21 @@ function processPoint(batchSize, s)
 				indexList[hitPos[1]][hitPos[3]][stage] = addIndex
 				
 				stage = stage + 1
+				
 				toIgnore[#toIgnore + 1] = shapeHit
 				
-				--local allShapes = QueryAabbShapes(world.aa, world.bb)
-				
 				--local minb = Vec(process.points[index].x - s / 2, world.aa[2], process.points[index].z - s / 2)
-				--local maxb = Vec(process.points[index].x + s / 2, world.bb[2] - offset, process.points[index].z + s / 2)
-				--local allShapes = QueryAabbShapes(minb, maxb)
-				--for i=1, #allShapes do
+				local minb = Vec(process.points[index].x - s / 2, world.bb[2] - offset - s, process.points[index].z - s / 2)
+				local maxb = Vec(process.points[index].x + s / 2, world.bb[2] - offset, process.points[index].z + s / 2)
+				local allShapes = QueryAabbShapes(minb, maxb)
+				for i=1, #allShapes do
 					--if IsShapeTouching(shapeHit, allShapes[i]) then
-						--toIgnore[#toIgnore + 1] = allShapes[i]
+						--local value = GetShapeMaterialAtPosition(allShapes[i], hitPos)
+						--if value ~= "" then
+							toIgnore[#toIgnore + 1] = allShapes[i]
+						--end
 					--end
-				--end
-				
+				end
 				
 				offset = offset + dist + bonusOffset
 				addIndex = addIndex + 1
@@ -538,7 +582,7 @@ function processEdges(batchSize, s)
 			elseif math.abs(npoint.height - points[index].height) / s > maxDeltaPerMeter then -- delta failure
 				points[index].neighbors[j].edge = false
 				
-			elseif abRaycast(points[index].pos, npoint.pos, false, 0) then -- raycast failure
+			elseif abRaycast(points[index].pos, npoint.pos, false, s / 2 - 0.2) then -- raycast failure
 				points[index].neighbors[j].edge = false
 				
 			end
@@ -558,6 +602,7 @@ function regionGrowing(batchSize)
 	for i=1, batchSize do
 		if rg.done then
 			status = 4
+			rg.status = 1
 			rg.toCompute = {}
 			break
 		end

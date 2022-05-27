@@ -3,8 +3,11 @@
 --API reference: http://teardowngame.com/modding/api.html
 
 function init()
-		
-	points = {} -- point information
+	
+	mappingList = {}
+	maxMappingCount = 1
+	
+	--md.points -- point information
 	--[[
 		[i]
 			.pos : Vec -- position
@@ -34,20 +37,13 @@ function init()
 				.first : first pass of the pathfinder
 	]]
 	
-	indexList = {} -- index in points
+	-- md.indexList -- index in points
 	--[[
 		[x] : table[float]
 			[z] : float
 				[stage] : int
 	]]
 	
-	process = {
-		points = {},
-		edgesDone = false,
-		batchSize = 500,
-		batchSizeEdges = 500,
-		i = 0
-	} -- pos to process
 	--[[
 		.i : int
 		.points : table[float]
@@ -56,127 +52,55 @@ function init()
 				.z : float
 	]]
 	
-	timer = {
-		raycast = 0,
-		edges = 0,
-		regionMapping = 0,
-		regionMerging = 0,
-		regionColoring = 0,
-		pathfinder = 0,
-		total = 0,
-		display = true
-	}
-	
-	status = 0
-	
 	displayRegions = false
-	
-	step = 1.0 -- default 1, max 4
-	radiusSize = step / 2
-	maxDeltaPerMeter = 1.1 --0.75
-	connex8 = false
-	
-	maxStage = 10
-	
-	rg = {
-		i = 1, -- region growing stuff
-		NO_COLOR = -1,
-		toCompute = {},
-		colorCount = 0,
-		done = false,
-		batchSize = 2500,
-		lastBlank = 1,
-		colorMapping = {
-			region = {},
-			color = {},
-			size = {}
-		},
-		status = 1,
-		processRegion = {}
-	}
+	abort = false
 	
 	world = {}
 	world.aa, world.bb = GetBodyBounds(GetWorldBody())
 	world.aa = floorVec(world.aa)
 	world.bb = floorVec(world.bb)
 	
-	addPointToProcess(world.aa, world.bb)
-	
 end
 
 
 function tick(dt)
-	--processDebugCross()
-	--pointsDebugCross()
-	
-	if displayRegions then
-		edgesDebugLine(true, 0)
-	end
-	if status > 3 then
-		displayPath()
-	end
-	
-	if timer.display then
-		debugWatchTable(timer)
-	end
-	
+
 	if InputPressed('shift') then
 		displayRegions = not displayRegions
 	end
 	
-	clearConsole()
-	DebugPrint("Status: " .. status .. "." .. rg.status)
-	if status > 0 and status < 4 then
-		timer.total = timer.total + dt
+	if InputPressed('x') then
+		abort = true
+	else
+		abort = false
 	end
 	
-	if status == 0 and InputPressed("c") then
-		status = 1
-
-	elseif status == 1 then
-		processPoint(process.batchSize)
-		timer.raycast = timer.raycast + dt
-		DebugPrint(process.i .. " / " .. #process.points)
-			
-	elseif status == 2 then
-		processEdges(process.batchSizeEdges)
-		timer.edges = timer.edges + dt
-		DebugPrint(process.i .. " / " .. #points)
-		
-	elseif status == 3 then
-		if rg.status == 1 then
-			timer.regionMapping = timer.regionMapping + dt
-			DebugPrint(rg.i .. " / " .. #points)
-		elseif rg.status == 2 then
-			timer.regionMerging = timer.regionMerging + dt
-			DebugPrint(rg.i .. " / " .. #points)
-		elseif rg.status == 3 then
-			timer.regionColoring = timer.regionColoring + dt
+	if InputPressed('c') then
+		if #mappingList < maxMappingCount then
+			mappingList[#mappingList + 1] = makeMappingData(world.aa, world.bb)
 		end
-		regionGrowing(rg.batchSize)
-		
-	elseif status == 4 then
-		if VecLength(points.pf.a) > 0 and VecLength(points.pf.b) > 0 then
-			status = 5
-			resetPathfinder()
-			timer.pathfinder = 0
-		elseif InputPressed("grab") then
-			points.pf.b = GetPlayerTransform().pos
-		elseif InputPressed("usetool") then
-			points.pf.a = GetPlayerTransform().pos
-		end
-		
-	elseif status == 5 then
-		pathfinderDebugCross()
-		computePath(points.pf.batchSize)
-		timer.pathfinder = timer.pathfinder + dt
-		DebugPrint("Computing")
-		
-	elseif status == 6 then
-		points.pf.a = Vec(0, 0, 0)
-		points.pf.b = Vec(0, 0, 0)
-		status = 4
 	end
+	
+	for i=1, #mappingList do
+		mapping(dt, mappingList[i])
+		DebugWatch("Path", getPathState(mappingList[i]))
+		if abort then
+			abortPath(mappingList[i])
+		end
+		if #mappingList[i].pf.path > 0 then -- display path
+			displayPath(mappingList[i])
+		end
+		if displayRegions then -- display regions
+			edgesDebugLine(true, mappingList[i])
+		end
+		if mappingList[i].verbose.progression then -- display progression
+			printProgressionMapping(mappingList[i])
+		end
+		if mappingList[i].verbose.timer then -- display timer
+			updateTimer(mappingList[i], dt)
+			debugWatchTable(mappingList[i].timer)
+		end
+end
 end
 
 
@@ -309,36 +233,39 @@ function abRaycast(a, b, ignoreVehicles, radius)
 	return hit
 end
 
-function addPointToProcess(infParam, supParam, s)
-	local inf = deepcopy(infParam)
+function addPointToProcess(md)
+	local inf = deepcopy(md.bounds.aa)
 	inf[2] = 0
-	local sup = deepcopy(supParam)
+	local sup = deepcopy(md.bounds.bb)
 	sup[2] = 0
 	
-	s = s or step
-	
-	local cursor = {}
-	cursor.x = inf[1]
-	cursor.z = inf[3]
+	local cursor = {
+		x = inf[1],
+		z = inf[3]
+	}
 	
 	while cursor.x < sup[1] do
 		while cursor.z < sup[3] do
-			processInsert(cursor)
-			cursor.z = cursor.z + s
+			processInsert(md, cursor)
+			cursor.z = cursor.z + md.step
 		end
-		cursor.x = cursor.x + s
+		cursor.x = cursor.x + md.step
 		cursor.z = inf[3]
 	end
 end
 
-function processInsert(v)
+function processInsert(md, v)
+	local process = md.process
 	v = deepcopy(v)
 	process.points[#process.points + 1] = {}
 	process.points[#process.points].x = v.x
 	process.points[#process.points].z = v.z
 end
 
-function pathfinderDebugCross()
+function pathfinderDebugCross(md)
+	
+	local points = md.points
+
 	for i=1, #points do
 		if points[i].pf.color > 0 then
 		local r = 0
@@ -353,27 +280,208 @@ function pathfinderDebugCross()
 	end
 end
 
-function processDebugCross()
-	for i=1, #process.points do
+function processDebugCross(md)
+	for i=1, #md.process.points do
 		local r = 1
 		local g = 0
-		if i > process.i then
+		if i > md.process.i then
 			r = 0
 			g = 1
 		end
-		DebugCross(Vec(process.points[i].x, 0 , process.points[i].z), r, g, 0, 1)
+		DebugCross(Vec(md.process.points[i].x, 0 , md.process.points[i].z), r, g, 0, 1)
 	end
 end
 
-function pointsDebugCross()
+function pointsDebugCross(md)
+
+	local points = md.points
+
 	for i=1, #points do
 		DebugCross(points[i].pos, 0, 0, 1, 1)
 	end
 end
 
-function edgesDebugLine(notDebugLine, threshold)
-	threshold = threshold or 0
+function makeMappingData(minBound, maxBound)
+	local md = {
+		points = {},
+		pf = {
+			batchSize = 1000,
+			queue = {},
+			path = {},
+			first = true,
+			current = nil,
+			a = nil,
+			b = nil,
+			dijkstra = false,
+			status = "idle"
+		},
+		indexList = {},
+		process = {
+			points = {},
+			i = 0,
+			batchSizeRaycast = 200,
+			batchSizeEdges = 400,
+			edgesDone = false
+		},
+		bounds = {
+			aa = floorVec(deepcopy(minBound)),
+			bb = floorVec(deepcopy(maxBound))
+		},
+		step = 1.0, -- default = 1.0, min = 0.1, max = 4.0
+		radius = 0,
+		i = 0,
+		status = 0,
+		maxStage = 10,
+		connex8 = false,
+		threshold = 0,
+		maxDeltaPerMeter = 1.1,
+		rg = {  -- region growing
+			NO_COLOR = -1,
+			toCompute = {},
+			colorCount = 0,
+			done = false,
+			batchSize = 2500,
+			lastBlank = 1,
+			colorMapping = {
+				region = {},
+				color = {},
+				size = {}
+			},
+			status = 1,
+			processRegion = {},
+			i = 0
+		},
+		timer = { -- timer
+			raycast = 0,
+			edges = 0,
+			regionMapping = 0,
+			regionMerging = 0,
+			regionColoring = 0,
+			pathfinder = 0,
+			total = 0
+		},
+		verbose = {
+			progression = true,
+			timer = true
+		}
+	}
+	
+	md.radius = md.step / 2
+	
+	return deepcopy(md)
+end
+
+function mapping(dt, md)
+
+	local status = md.status
+	local rg  = md.rg
+	local pf = md.pf
+	local process = md.process
+
+	if md.status == 0 then -- adding point position to compute vertically
+		addPointToProcess(md)
+		md.status = 1
+
+	elseif md.status == 1 then
+		processPoint(md)
+			
+	elseif md.status == 2 then
+		processEdges(md)
+		
+	elseif md.status == 3 then
+		regionGrowing(md)
+		
+	elseif md.status == 4 then
+		if VecLength(pf.a) > 0 and VecLength(pf.b) > 0 then
+			md.status = 5
+			resetPathfinder(md)
+		elseif InputPressed("grab") then
+			pf.b = GetPlayerTransform().pos
+		elseif InputPressed("usetool") then
+			pf.a = GetPlayerTransform().pos
+		end
+		
+	elseif md.status == 5 then
+		computePath(md)
+		
+	elseif md.status == 6 then
+		pf.a = Vec(0, 0, 0)
+		pf.b = Vec(0, 0, 0)
+		md.status = 4
+	end
+end
+
+function updateTimer(md, dt)
+	local rg = md.rg
+	local timer = md.timer
+	if md.status > 0 and md.status < 4 then
+		timer.total = timer.total + dt
+	end
+	if md.status == 0 then -- adding point position to compute vertically
+	elseif md.status == 1 then
+		timer.raycast = timer.raycast + dt
+	elseif md.status == 2 then
+		timer.edges = timer.edges + dt
+	elseif md.status == 3 then
+		if rg.status == 1 then
+			timer.regionMapping = timer.regionMapping + dt
+		elseif rg.status == 2 then
+			timer.regionMerging = timer.regionMerging + dt
+		elseif rg.status == 3 then
+			timer.regionColoring = timer.regionColoring + dt
+		end
+	elseif md.status == 4 then
+	elseif md.status == 5 then
+		if md.pf.first then	
+			timer.pathfinder = dt
+		else
+			timer.pathfinder = timer.pathfinder + dt
+		end
+	elseif md.status == 6 then
+	end
+end
+
+function getPathState(md)
+	return md.pf.status
+end
+
+function abortPath(md)
+	md.pf.a = Vec(0, 0, 0)
+	md.pf.b = Vec(0, 0, 0)
+	md.status = 4
+	md.pf.status = "idle"
+end
+
+function printProgressionMapping(md)
+	local process = md.process
+	local rg = md.rg
+	if md.status == 0 then -- adding point position to compute vertically
+		DebugWatch("Progression", "Ready to compute.")	
+	elseif md.status == 1 then
+		DebugWatch("Progression", md.process.i .. " / " .. #md.process.points)	
+	elseif md.status == 2 then
+		DebugWatch("Progression", process.i .. " / " .. #md.points)
+	elseif md.status == 3 then
+		if rg.status == 1 then
+			DebugWatch("Progression", rg.i .. " / " .. #md.points)
+		elseif rg.status == 2 then
+			DebugWatch("Progression", rg.i .. " / " .. #md.points)
+		elseif rg.status == 3 then
+		end
+	elseif md.status == 4 then
+			DebugWatch("Progression", "Computation done, pathfinder ready.")
+	elseif md.status == 5 then
+			DebugWatch("Progression", "Computing path...")
+	elseif md.status == 6 then
+	end
+end
+
+function edgesDebugLine(notDebugLine, md)
 	edgeCount = 0
+	local points = md.points
+	local indexList = md.indexList
+	local rg = md.rg
+	
 	for i=1, #points do
 		for j=1, #points[i].neighbors do
 			if points[i].neighbors[j].x > points[i].pos[1] or points[i].neighbors[j].z > points[i].pos[3] then
@@ -400,9 +508,7 @@ function edgesDebugLine(notDebugLine, threshold)
 							b = rg.colorMapping.color[regionIndex][3]
 							
 							valid = false
-							DebugPrint(regionIndex)
-							DebugPrint(rg.colorMapping.size[regionIndex])
-							if rg.colorMapping.size[regionIndex] > threshold then
+							if rg.colorMapping.size[regionIndex] > md.threshold then
 								valid = true
 							end
 						end
@@ -421,16 +527,19 @@ function edgesDebugLine(notDebugLine, threshold)
 	end
 end
 
-function processPoint(batchSize, s)
-	batchSize = batchSize or 1
-	s = s or step
+function processPoint(md)
+	local points = md.points
+	local batchSize = md.process.batchSizeRaycast
+	local process = md.process
+	local indexList = md.indexList
+	
 	for i=1, batchSize do
 		local index = i + process.i
 		if index > #process.points then
 			process.points = {}
 			process.i = 0
 			process.edgesDone = false
-			status = 2
+			md.status = 2
 			break
 		end
 		local addIndex = nil
@@ -440,11 +549,6 @@ function processPoint(batchSize, s)
 		end
 		if addIndex == nil then
 			addIndex = #points + 1
-			--DebugPrint(addIndex)
-			--if indexList[deepcopy(process.points[index].x)] == nil then
-				--indexList[deepcopy(process.points[index].x)] = {}
-			--end
-			--indexList[deepcopy(process.points[index].x)][deepcopy(process.points[index].z)] = addIndex
 		end
 		
 		local hit = true
@@ -453,22 +557,23 @@ function processPoint(batchSize, s)
 		local toIgnore = {}
 		local stage = 1
 		local offset = 0
-		local bonusOffset = s
+		local bonusOffset = md.step
 		local dist = nil
 		
-		while hit and stage <= maxStage do
-			hit, hitPos, shapeHit, dist = downRaycast(Vec(process.points[index].x, world.bb[2] - offset, process.points[index].z), world.bb[2] - world.aa[2] - offset, false, false, radiusSize, toIgnore)
+		while hit and stage <= md.maxStage do
+			hit, hitPos, shapeHit, dist = downRaycast(Vec(process.points[index].x, world.bb[2] - offset, process.points[index].z), world.bb[2] - world.aa[2] - offset, false, false, md.radius, toIgnore)
 			if hit then
 				points[addIndex] = {}
 				points[addIndex].pos = hitPos
 				points[addIndex].height = hitPos[2]
 				points[addIndex].rgDone = false
 				points[addIndex].rgIndex = -1
-				points[addIndex].color = rg.NO_COLOR
-				points[addIndex].neighbors = addNeighbors(hitPos, s, connex8)
-				--points[addIndex].pf = {}
-				--points[addIndex].pf.color = 0
-				--points[addIndex].pf.dist = {}
+				points[addIndex].color = md.rg.NO_COLOR
+				points[addIndex].neighbors = addNeighbors(hitPos, md)
+				points[addIndex].pf = {
+					color = 0,
+					dist = {}
+				}
 				
 				if indexList[hitPos[1]] == nil then
 					indexList[hitPos[1]] = {}
@@ -482,17 +587,11 @@ function processPoint(batchSize, s)
 				
 				toIgnore[#toIgnore + 1] = shapeHit
 				
-				--local minb = Vec(process.points[index].x - s / 2, world.aa[2], process.points[index].z - s / 2)
-				local minb = Vec(process.points[index].x - s / 2, world.bb[2] - offset - s, process.points[index].z - s / 2)
-				local maxb = Vec(process.points[index].x + s / 2, world.bb[2] - offset, process.points[index].z + s / 2)
+				local minb = Vec(process.points[index].x - md.radius, world.bb[2] - offset - md.step, process.points[index].z - md.radius)
+				local maxb = Vec(process.points[index].x + md.radius, world.bb[2] - offset, process.points[index].z + md.radius)
 				local allShapes = QueryAabbShapes(minb, maxb)
 				for i=1, #allShapes do
-					--if IsShapeTouching(shapeHit, allShapes[i]) then
-						--local value = GetShapeMaterialAtPosition(allShapes[i], hitPos)
-						--if value ~= "" then
-							toIgnore[#toIgnore + 1] = allShapes[i]
-						--end
-					--end
+					toIgnore[#toIgnore + 1] = allShapes[i]
 				end
 				
 				offset = offset + dist + bonusOffset
@@ -503,28 +602,26 @@ function processPoint(batchSize, s)
 	process.i = process.i + batchSize
 end
 
-function addNeighbors(origin, s, diag)
-	diag = diag or false
-	s = s or step
+function addNeighbors(origin, md)
 	local flat = deepcopy(origin)
 	flat[2] = 0
 	
 	local n = {}
 	
 	local offsets = {}
-	offsets[#offsets + 1] = Vec(-s, 0, 0)
-	offsets[#offsets + 1] = Vec(s, 0, 0)
-	offsets[#offsets + 1] = Vec(0, 0, -s)
-	offsets[#offsets + 1] = Vec(0, 0, s)
-	if diag then
-		offsets[#offsets + 1] = Vec(-s, 0, -s)
-		offsets[#offsets + 1] = Vec(s, 0, -s)
-		offsets[#offsets + 1] = Vec(-s, 0, s)
-		offsets[#offsets + 1] = Vec(s, 0, s)
+	offsets[#offsets + 1] = Vec(-md.step, 0, 0)
+	offsets[#offsets + 1] = Vec(md.step, 0, 0)
+	offsets[#offsets + 1] = Vec(0, 0, -md.step)
+	offsets[#offsets + 1] = Vec(0, 0, md.step)
+	if md.connex8 then
+		offsets[#offsets + 1] = Vec(-md.step, 0, -md.step)
+		offsets[#offsets + 1] = Vec(md.step, 0, -md.step)
+		offsets[#offsets + 1] = Vec(-md.step, 0, md.step)
+		offsets[#offsets + 1] = Vec(md.step, 0, md.step)
 	end
 	
 	for i=1, #offsets do
-		for j=1, maxStage do
+		for j=1, md.maxStage do
 			local pos = VecAdd(flat, offsets[i])
 			n[#n + 1] = {}
 			n[#n].x = pos[1]
@@ -537,20 +634,24 @@ function addNeighbors(origin, s, diag)
 	return deepcopy(n)
 end
 
-function processEdges(batchSize, s)
-	batchSize = batchSize or 1
-	s = s or step
+function processEdges(md)
+
+	local points = md.points
+	local batchSize = md.process.batchSizeEdges
+	local process = md.process
+	local indexList = md.indexList
+	
 	for i=1, batchSize do
 		local index = i + process.i
 		if index > #points then
 			process.edgesDone = true
-			status = 3
-			rg.i = 1
-			rg.toCompute = {}
-			rg.colorCount = 0
-			rg.lastBlank = 1
-			rg.done = false
-			rg.status = 1
+			md.status = 3
+			md.rg.i = 1
+			md.rg.toCompute = {}
+			md.rg.colorCount = 0
+			md.rg.lastBlank = 1
+			md.rg.done = false
+			md.rg.status = 1
 			process.i = 0
 			break
 		end
@@ -558,12 +659,11 @@ function processEdges(batchSize, s)
 		local neighbors = {}
 		
 		for j=1, #points[index].neighbors do
-			--DebugPrint(points[i].neighbors[j].x .. " " .. points[i].neighbors[j].z)
-			--if points[i].neighbors[j].x > points[i].pos[1] or points[i].neighbors[j].z > points[i].pos[3] then
-				neighbors[#neighbors + 1] = points[index].neighbors[j]
-			--end
+			neighbors[#neighbors + 1] = points[index].neighbors[j]
 		end
+		
 		local newNeighbors = {}
+		
 		for j=1, #neighbors do
 			points[index].neighbors[j].edge = true
 			local npointIndex = nil
@@ -577,10 +677,10 @@ function processEdges(batchSize, s)
 			if npointIndex == nil then -- nil failure
 				points[index].neighbors[j].edge = false
 				
-			elseif math.abs(npoint.height - points[index].height) / s > maxDeltaPerMeter then -- delta failure
+			elseif math.abs(npoint.height - points[index].height) / md.step > md.maxDeltaPerMeter then -- delta failure
 				points[index].neighbors[j].edge = false
 				
-			elseif abRaycast(points[index].pos, npoint.pos, false, s / 2 - 0.2) then -- raycast failure
+			elseif abRaycast(points[index].pos, npoint.pos, false, md.radius - 0.2) then -- raycast failure
 				points[index].neighbors[j].edge = false
 				
 			end
@@ -593,20 +693,23 @@ function processEdges(batchSize, s)
 	process.i = process.i + batchSize
 end
 
-function regionGrowing(batchSize)
-	threshold = threshold or 0 -- stricly >
-	batchSize = batchSize or 1
+function regionGrowing(md)
+
+	local batchSize = md.rg.batchSize
+	local points = md.points
+	local rg = md.rg
+	local indexList = md.indexList
 	
 	for i=1, batchSize do
 		if rg.done then
-			status = 4
+			md.status = 4
 			rg.status = 1
 			rg.toCompute = {}
 			break
 		end
 		
 		if rg.status == 1 then -- assign colors
-			local pointIndex = getNextGreyIndex()
+			local pointIndex = getNextGreyIndex(rg)
 			local point = points[pointIndex]
 			if point == nil then
 				for j=rg.lastBlank, #points do
@@ -663,7 +766,7 @@ function regionGrowing(batchSize)
 					end
 					if index ~= nil then
 						if points[index].color ~= points[rg.i].color then
-							convertColor(points[index].color, points[rg.i].color)
+							convertColor(points[index].color, points[rg.i].color, md)
 						end
 					end
 				end
@@ -698,18 +801,21 @@ function regionGrowing(batchSize)
 
 			rg.status = 4
 			rg.done = true
-			initPathFinder()
+			initPathFinder(md.pf, false)
 			break
 		end
 	end
 end
 
-function getNextGreyIndex()
+function getNextGreyIndex(rg)
 	rg.i = rg.i + 1
 	return rg.toCompute[rg.i - 1]
 end
 
-function convertColor(oldColor, newColor)
+function convertColor(oldColor, newColor, md)
+	local rg = md.rg
+	local points = md.points
+	
 	for i=1, #rg.processRegion[oldColor] do
 		points[rg.processRegion[oldColor][i]].color = newColor
 		rg.processRegion[newColor][#rg.processRegion[newColor] + 1] = rg.processRegion[oldColor][i]
@@ -717,57 +823,70 @@ function convertColor(oldColor, newColor)
 	rg.processRegion[oldColor] = {}
 end
 
-function initPathFinder(skipPointReset)
+function initPathFinder(pf, skipPointReset)
+	
 	skipPointReset = skipPointReset or false
 	if skipPointReset == false then
-		points.pf = {}
-		points.pf.a = Vec(0, 0, 0)
-		points.pf.b = Vec(0, 0, 0)
+		pf = {
+			a = Vec(0, 0, 0),
+			b = Vec(0, 0, 0)
+		}
 	end
-	points.pf.queue = {}
-	points.pf.path = {}
-	points.pf.batchSize = 150
-	points.pf.current = nil
-	points.pf.first = true
+	pf.queue = {}
+	pf.path = {}
+	pf.batchSize = 150
+	pf.current = nil
+	pf.first = true
 end
 
-function computePath(batchSize)
-	if points.pf.first then
-		points.pf.a = getClosestNodeIndex(points.pf.a)
-		points.pf.b = getClosestNodeIndex(points.pf.b)
-		if points[points.pf.a].color ~= points[points.pf.b].color then
-			status = 6
-			DebugWatch("Not the same region!", rand(100))
+function computePath(md)
+	
+	local points = md.points
+	local pf = md.pf
+	local batchSize = md.pf.batchSize
+	pf.status = "busy"
+	if pf.first then
+		pf.a = getClosestNodeIndex(pf.a, md)
+		pf.b = getClosestNodeIndex(pf.b, md)
+		if points[pf.a].color ~= points[pf.b].color then
+			md.status = 6
+			--DebugWatch("Not the same region!", rand(100))
+			pf.status = "fail"
 		end
-		points.pf.first = false
-		local returnVal = addInQueue(points.pf.a, nil)
+		pf.first = false
+		local returnVal = addInQueue(pf.a, nil, md)
 		--DebugWatch("first", returnVal)
 	end
 	
 	local complete = false
 	for i=1, batchSize do
-		points.pf.current = getNextIndexInQueue()
-		if points.pf.current == points.pf.b or points.pf.current == nil then
+		pf.current = getNextIndexInQueue(md)
+		if pf.current == pf.b or pf.current == nil then
 			complete = true
 			break
 		else
-			addNeighboursToQueue(points.pf.current)
+			addNeighboursToQueue(md)
 		end
 	end
 	
 	if complete then
 		-- build the path table
-		local cursor = points.pf.b
-		while cursor ~= nil and cursor ~= points.pf.a do
-			points.pf.path[#points.pf.path + 1] = cursor
+		local cursor = pf.b
+		while cursor ~= nil and cursor ~= pf.a do
+			pf.path[#pf.path + 1] = cursor
 			cursor = points[cursor].pf.previous
 		end
-		points.pf.path[#points.pf.path + 1] = cursor -- add the points.pf.a point
-		status = 6
+		pf.path[#pf.path + 1] = cursor -- add the pf.a point
+		md.status = 6
+		pf.status = "done"
 	end
 end
 
-function addInQueue(pointIndex, previousIndex)
+function addInQueue(pointIndex, previousIndex, md)
+	
+	local points = md.points
+	local pf = md.pf
+	
 	if points[pointIndex].pf.color == 0 then
 		points[pointIndex].pf.color = 1
 		points[pointIndex].pf.previous = previousIndex
@@ -776,28 +895,30 @@ function addInQueue(pointIndex, previousIndex)
 		else
 			points[pointIndex].pf.dist.a = 0
 		end
-		points[pointIndex].pf.dist.b = VecLength(VecSub(points[pointIndex].pos, points[points.pf.b].pos))
-		points.pf.queue[#points.pf.queue + 1] = pointIndex
+		points[pointIndex].pf.dist.b = VecLength(VecSub(points[pointIndex].pos, points[pf.b].pos))
+		pf.queue[#pf.queue + 1] = pointIndex
 		--DebugWatch("color", points[pointIndex].pf.color)
 		return true -- added
 	end
 	return false -- not added
 end
 
-function getClosestNodeIndex(inputVec)
+function getClosestNodeIndex(inputVec, md)
 	local p = deepcopy(inputVec)
+	p[1] = p[1] - (p[1] % md.step) + (world.aa[1] % md.step)
+	p[3] = p[3] - (p[3] % md.step) + (world.aa[3] % md.step)
+	local indexStageList = md.indexList[p[1]][p[3]]
+	local points = md.points
 	local bmu = {
 		index = nil,
 		dist = 0
 	}
-	p[1] = p[1] - (p[1] % step) + (world.aa[1] % step)
-	p[3] = p[3] - (p[3] % step) + (world.aa[3] % step)
 
-	for stage=1, #indexList[p[1]][p[3]] do
-		if indexList[p[1]][p[3]][stage] ~= nil then
-			local dist = VecLength(VecSub(points[indexList[p[1]][p[3]][stage]].pos, p))
+	for stage=1, #indexStageList do
+		if indexStageList[stage] ~= nil then
+			local dist = VecLength(VecSub(points[indexStageList[stage]].pos, p))
 			if bmu.index == nil or dist < bmu.dist then
-				bmu.index = indexList[p[1]][p[3]][stage]
+				bmu.index = indexStageList[stage]
 				bmu.dist = dist
 			end
 		end
@@ -805,7 +926,11 @@ function getClosestNodeIndex(inputVec)
 	return bmu.index
 end
 
-function getNextIndexInQueue()
+function getNextIndexInQueue(md)
+
+	local points = md.points
+	local pf = md.pf
+
 	local bmu = {
 		index = nil,
 		dist = 0
@@ -813,55 +938,71 @@ function getNextIndexInQueue()
 	
 	local updatedQueue = {}
 	
-	--DebugWatch("size", #points.pf.queue)
-	for i=1, #points.pf.queue do
-		--local dist = VecLength(VecSub(points[points.pf.queue[i]].pos, points[points.pf.b].pos))
-		local dist = points[points.pf.queue[i]].pf.dist.b
+	for i=1, #pf.queue do
+		local dist = 0
+		if pf.dijkstra then
+			dist = points[pf.queue[i]].pf.dist.a
+		else
+			dist = points[pf.queue[i]].pf.dist.b
+		end
 		if bmu.index == nil or dist < bmu.dist then
 			if bmu.index ~= nil then
 				updatedQueue[#updatedQueue + 1] = bmu.index
 			end
-			bmu.index = points.pf.queue[i]
+			bmu.index = pf.queue[i]
 			bmu.dist = dist
 		else
-			updatedQueue[#updatedQueue + 1] = points.pf.queue[i]
+			updatedQueue[#updatedQueue + 1] = pf.queue[i]
 		end
 	end
-	--DebugWatch("index", bmu.index)
+	
 	if bmu.index ~= nil then
 		points[bmu.index].pf.color = 2
 	end
-	points.pf.queue = deepcopy(updatedQueue)
+	pf.queue = deepcopy(updatedQueue)
 	
 	return bmu.index
 end
 
-function addNeighboursToQueue(current)
-	for i=1, #points[current].neighbors do
-		local index = indexList[points[current].neighbors[i].x][points[current].neighbors[i].z][points[current].neighbors[i].stage]
-		if points[current].neighbors[i].edge then
+function addNeighboursToQueue(md)
+
+	local points = md.points
+	local pf = md.pf
+	local indexList = md.indexList
+
+	for i=1, #points[pf.current].neighbors do
+		local index = indexList[points[pf.current].neighbors[i].x][points[pf.current].neighbors[i].z][points[pf.current].neighbors[i].stage]
+		if points[pf.current].neighbors[i].edge then
 			if points[index].pf.color == 0 then
-				addInQueue(index, current)
-			elseif points[index].pf.color == 1 and points[current].pf.dist.a < points[points[index].pf.previous].pf.dist.a then
-				points[index].pf.previous = current
+				addInQueue(index, pf.current, md)
+			elseif points[index].pf.color == 1 and points[pf.current].pf.dist.a < points[points[index].pf.previous].pf.dist.a then
+				points[index].pf.previous = pf.current
 			end
 		end
 	end
 end
 
-function displayPath()
-	for i=1, #points.pf.path - 1 do
-		DrawLine(points[points.pf.path[i]].pos, points[points.pf.path[i + 1]].pos, 1, 1, 0, 1)
+function displayPath(md)
+
+	local points = md.points
+	local pf = md.pf
+	
+	for i=1, #pf.path - 1 do
+		DrawLine(points[pf.path[i]].pos, points[pf.path[i + 1]].pos, 1, 1, 0, 1)
 	end
 end
 
-function resetPathfinder()
+function resetPathfinder(md)
+
+	local points = md.points
+
 	for i=1, #points do
-		points[i].pf = {}
-		points[i].pf.color = 0
-		points[i].pf.dist = {}
+		points[i].pf = {
+			color = 0,
+			dist = {}
+		}
 	end
-	initPathFinder(true)
+	initPathFinder(md.pf, true)
 end
 
 

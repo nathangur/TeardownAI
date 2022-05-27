@@ -109,8 +109,6 @@ function tick(dt)
 	--processDebugCross()
 	--pointsDebugCross()
 	
-	DrawLine(world.aa, world.bb, 1, 0, 0, 1)
-	
 	if displayRegions then
 		edgesDebugLine(true, 0)
 	end

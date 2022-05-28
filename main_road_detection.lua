@@ -55,6 +55,11 @@ function init()
 	displayRegions = false
 	abort = false
 	
+	location = {
+		a = Vec(0, 0, 0),
+		b = Vec(0, 0, 0)
+	}
+	
 	world = {}
 	world.aa, world.bb = GetBodyBounds(GetWorldBody())
 	world.aa = floorVec(world.aa)
@@ -64,6 +69,12 @@ end
 
 
 function tick(dt)
+
+	local launchPathfinder = false
+
+	if InputPressed('mmb') then
+		launchPathfinder = true
+	end
 
 	if InputPressed('shift') then
 		displayRegions = not displayRegions
@@ -75,6 +86,14 @@ function tick(dt)
 		abort = false
 	end
 	
+	if InputDown('v') and InputPressed('usetool') then
+		location.a = GetPlayerTransform().pos
+	end
+	
+	if InputDown('v') and InputPressed('grab') then
+		location.b = GetPlayerTransform().pos
+	end
+	
 	if InputPressed('c') then
 		if #mappingList < maxMappingCount then
 			mappingList[#mappingList + 1] = makeMappingData(world.aa, world.bb)
@@ -82,8 +101,13 @@ function tick(dt)
 	end
 	
 	for i=1, #mappingList do
-		mapping(dt, mappingList[i])
-		DebugWatch("Path", getPathState(mappingList[i]))
+	
+		if launchPathfinder and getPathState(mappingList[i]) ~= "busy" then
+			queryPath(mappingList[i], location.a, location.b)
+		end
+		
+		processUpdate(mappingList[i], dt)
+		
 		if abort then
 			abortPath(mappingList[i])
 		end
@@ -313,7 +337,9 @@ function makeMappingData(minBound, maxBound)
 			a = nil,
 			b = nil,
 			dijkstra = false,
-			status = "idle"
+			statusPath = "idle",
+			status = 1,
+			start = false
 		},
 		indexList = {},
 		process = {
@@ -390,25 +416,47 @@ function mapping(dt, md)
 		
 	elseif md.status == 3 then
 		regionGrowing(md)
-		
-	elseif md.status == 4 then
-		if VecLength(pf.a) > 0 and VecLength(pf.b) > 0 then
-			md.status = 5
-			resetPathfinder(md)
-		elseif InputPressed("grab") then
-			pf.b = GetPlayerTransform().pos
-		elseif InputPressed("usetool") then
-			pf.a = GetPlayerTransform().pos
-		end
-		
-	elseif md.status == 5 then
-		computePath(md)
-		
-	elseif md.status == 6 then
-		pf.a = Vec(0, 0, 0)
-		pf.b = Vec(0, 0, 0)
-		md.status = 4
 	end
+end
+
+function processUpdate(md, dt)
+	mapping(dt, md)
+	handlePathQuery(md)
+end
+
+function queryPath(md, a, b)
+	md.pf.a = deepcopy(a)
+	md.pf.b = deepcopy(b)
+	md.pf.start = true
+end
+
+function handlePathQuery(md)
+	local pf = md.pf
+	if md.status == 4 then
+		if pf.status == 1 then
+			if pf.start then
+				pf.start = false
+				pf.status = 2
+				resetPathfinder(md)
+			end
+			
+		elseif pf.status == 2 then
+			computePath(md)
+			
+		elseif pf.status == 3 then
+			pf.a = Vec(0, 0, 0)
+			pf.b = Vec(0, 0, 0)
+			pf.status = 1
+		end
+	end
+end
+
+function getPath(md)
+	local path = {}
+	for i=1, #md.pf.path do
+		path[#path + 1] = deepcopy(md.points[md.pf.path[i]].pos)
+	end
+	return path
 end
 
 function updateTimer(md, dt)
@@ -431,25 +479,26 @@ function updateTimer(md, dt)
 			timer.regionColoring = timer.regionColoring + dt
 		end
 	elseif md.status == 4 then
-	elseif md.status == 5 then
-		if md.pf.first then	
-			timer.pathfinder = dt
-		else
-			timer.pathfinder = timer.pathfinder + dt
+		if md.pf.status == 2 then
+			if md.pf.first then	
+				timer.pathfinder = dt
+			else
+				timer.pathfinder = timer.pathfinder + dt
+			end
 		end
-	elseif md.status == 6 then
 	end
 end
 
 function getPathState(md)
-	return md.pf.status
+	return md.pf.statusPath
 end
 
 function abortPath(md)
 	md.pf.a = Vec(0, 0, 0)
 	md.pf.b = Vec(0, 0, 0)
-	md.status = 4
-	md.pf.status = "idle"
+	md.pf.status = 1
+	md.pf.statusPath = "idle"
+	md.pf.start = false
 end
 
 function printProgressionMapping(md)
@@ -469,10 +518,11 @@ function printProgressionMapping(md)
 		elseif rg.status == 3 then
 		end
 	elseif md.status == 4 then
+		if md.pf.status == 1 then
 			DebugWatch("Progression", "Computation done, pathfinder ready.")
-	elseif md.status == 5 then
+		elseif md.pf.status == 2 then
 			DebugWatch("Progression", "Computing path...")
-	elseif md.status == 6 then
+		end
 	end
 end
 
@@ -703,6 +753,7 @@ function regionGrowing(md)
 	for i=1, batchSize do
 		if rg.done then
 			md.status = 4
+			md.pf.status = 1
 			rg.status = 1
 			rg.toCompute = {}
 			break
@@ -844,14 +895,14 @@ function computePath(md)
 	local points = md.points
 	local pf = md.pf
 	local batchSize = md.pf.batchSize
-	pf.status = "busy"
+	pf.statusPath = "busy"
 	if pf.first then
 		pf.a = getClosestNodeIndex(pf.a, md)
 		pf.b = getClosestNodeIndex(pf.b, md)
 		if points[pf.a].color ~= points[pf.b].color then
-			md.status = 6
+			pf.status = 3
 			--DebugWatch("Not the same region!", rand(100))
-			pf.status = "fail"
+			pf.statusPath = "fail"
 		end
 		pf.first = false
 		local returnVal = addInQueue(pf.a, nil, md)
@@ -877,8 +928,8 @@ function computePath(md)
 			cursor = points[cursor].pf.previous
 		end
 		pf.path[#pf.path + 1] = cursor -- add the pf.a point
-		md.status = 6
-		pf.status = "done"
+		pf.status = 3
+		pf.statusPath = "done"
 	end
 end
 

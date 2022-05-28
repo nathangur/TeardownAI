@@ -1,0 +1,115 @@
+mappingData = makeMappingData(minBound, maxBound)
+minBound : Vec -- lower bound world pos
+maxBound : Vec -- upper bound world pos
+mappingData : table
+Return a mappingData object. You can store it as you wish. Use this object in the following functions.
+
+none = processUpdate(md, dt)
+md : mappingData
+dt : float -- delta time
+Will do all the necessary computations for the mappingData object in parameter. Call this continuously at each step for each mappingData object.
+
+none = queryPath(md, a, b)
+md : mappingData
+a : Vec -- starting world pos
+b : target world pos
+Will launch the computation of a path from a to b.
+
+state = getPathState(md)
+md : mappingData
+state : string -- the current state of the path. Possible values are the following:
+	"idle" - no query.
+	"busy" - computing.
+	"fail" - can't find any path.
+	"done" - the path have been succesfully computed.
+	
+path = getPath(md)
+md : mappingData
+path : table[int] = Vec -- the list of points as Vec of the path.
+
+none = abortPath(md)
+md : mappingData
+Abort the path computation.
+
+---------------------
+
+How to use:
+
+1. md = makeMappingData(minBound, maxBound) -- create a mappingData object
+2. processUpdate(md, dt) -- call this function continuously in your tick or update function.
+3. queryPath(md, a, b) -- call once this function to launch the computation
+
+Example:
+
+function tick(dt)
+	if firstPassage == true then
+		firstPassage = false
+		local worldAA, worldBB = GetBodyBounds(GetWorldBody())
+		md = makeMappingData(worldAA, worldBB)
+	end
+	
+	processUpdate(md)
+	
+	if md.status > 3 and firstQuery == true then
+		firstQuery = false
+		queryPath(md, pointA, pointB)
+	end
+	
+	-- to print the path
+	local path = getPath(md)
+	for i=1, #path - 1 do
+		DrawLine(path[i], path[i + 1])
+	end
+	--
+end
+
+---------------------
+
+Parameters you can change in the function makeMappingData(minBound, maxBound)
+
+- All the batchSize : may cause lag. Useless to increase it if you're down to 30 fps.
+- step : change this depending of the precision you want. By default, set it to 1.
+- maxStage : increasing this may cause lags, but useful on skycraper map to map all the floors of the buildings.
+- maxDeltaPerMeter : the maximum difference of height per meter that you tolerate.
+- verbose : to display or not some info
+- dijkstra : more accurate pathfinding, but also a bit longer to compute.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

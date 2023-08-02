@@ -21,7 +21,7 @@ local beta2 = 0.999
 local epsilon = 0.00001
 
 -- Parameters that you can adjust based on your specific requirements
-local TARGET_SPEED = 20  
+local TARGET_SPEED = 10  
 local MAX_DISTANCE = 500  
 local MAX_STEERING = 1
 local MAX_BRAKE = 1
@@ -52,6 +52,7 @@ function nn:init(input_size, hidden_size, output_size)
     end
   end
 end
+
 
 -- Sigmoid function
 local function sigmoid(x)
@@ -91,6 +92,40 @@ local function get_gradients(inputs, hiddens, outputs, targets)
     return out_grads, hid_grads
 end
 
+-- Batch normalization
+local bn_mean, bn_variance
+
+-- Calculate mean and variance for batch norm
+local function batchnorm_forward(hiddens)
+
+  local N = #hiddens
+  
+  -- Calculate mean
+  local mean = 0
+  for i=1,N do
+    mean = mean + hiddens[i]
+  end
+  mean = mean / N
+
+  -- Calculate variance
+  local variance = 0
+  for i=1,N do
+    variance = variance + (hiddens[i] - mean)^2
+  end
+  variance = variance / N
+
+  -- Store for backward pass
+  bn_mean = mean
+  bn_variance = variance
+
+  -- Normalize
+  for i=1,N do
+    hiddens[i] = (hiddens[i] - mean) / math.sqrt(variance + epsilon)
+  end
+
+  return hiddens
+end
+
 -- Forward pass
 function nn:forward(inputs)
 
@@ -117,14 +152,24 @@ function nn:forward(inputs)
         end
         outputs[i] = sigmoid(sum)
     end  
+
+      -- Apply batch normalization
+  hiddens = batchnorm_forward(hiddens)
   
     return hiddens, outputs
 end
 
--- Update weights using gradients and a learning rate
-local lr = 0.1
+-- Learning rate that decays over time
+local lr = 0.1 
+local lr_decay = 0.995
+
+-- Decay learning rate
+function decay_learning_rate()
+  lr = lr * lr_decay
+end
 
 function nn:update_weights(out_grads, hid_grads, hiddens, inputs)
+  decay_learning_rate()
 
   -- Update output weights
   for i=1,#out_grads do
@@ -149,12 +194,15 @@ end
 
 -- Training function
 function nn:train(inputs, targets)
+  
 
     local hiddens, outputs = self:forward(inputs)
 
     local out_grads, hid_grads = get_gradients(inputs, hiddens, outputs, targets)
 
     self:update_weights(out_grads, hid_grads, hiddens, inputs)
+
+    updateTrainingInfo(true, loss)
 
     return outputs, targets 
 end
@@ -196,8 +244,10 @@ ui.vehicleInfo = {
   handbrake = false      
 }
 
-function ui.updateTrainingInfo(iteration, loss)
-  ui.trainingInfo.iteration = iteration
+function updateTrainingInfo(didTrain, loss)
+  if didTrain then
+    ui.trainingInfo.iteration = ui.trainingInfo.iteration + 1
+  end
   ui.trainingInfo.loss = loss
 end
 
@@ -381,8 +431,8 @@ function control_vehicle(vehicle, goal_pos, originalTransform)
   ui.outputs = outputs
 
   -- Get steering and throttle
-  local steering = processSteering(outputs[1])
-  local throttle = outputs[2]
+  local steering = clamp(outputs[1], -1, 1) 
+  local throttle = clamp(outputs[2], 0, 1)
 
   -- Reset vehicle if it goes off the map
   --reset_vehicle_if_off_map(vehicle, originalTransform)
@@ -412,7 +462,7 @@ function tick(dt)
             
   -- Train network
   ui.trainingInfo.loss = nn:train(inputs, targets)
-  ui.updateTrainingInfo(ui.trainingInfo.iteration + 1, ui.trainingInfo.loss)
+
               
   -- Control vehicle
   control_vehicle(vehicle, goal_pos, originalTransform)

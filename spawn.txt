@@ -1,0 +1,3 @@
+TEst
+
+MOD/test.xml : MOD/test.xml/instance=MOD/test.xml

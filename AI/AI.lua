@@ -1,4 +1,6 @@
 --Credit to Elboydo's old ai mod for some reference.
+
+
 detectRange = 5--2.5--3
 
 isAiActive = true
@@ -153,9 +155,9 @@ function init()
 	localPos = TransformToLocalPoint(carTransform, vlpos)
 
 	nodeloc = FindLocation("node")
-	nodes = GetLocationTransform(nodeLoc).pos --nodePos aka the location of the node
+	--nodes = GetLocationTransform(nodeLoc).pos --nodePos aka the location of the node
 	--local value = GetTagValue(vehicle.id, "aicar")
-	--nodes = FindLocations("node",true)
+	nodes = nodeloc
 
 	for key,value in ipairs(nodes) do
 		if(tonumber(GetTagValue(value, "node"))==aiNodes) then 
@@ -178,52 +180,16 @@ function tick(dt)
 
 	markLoc()
 
-	eyes()
-
 	ripUpdate()
 
 end
 
-function eyes()
-	local eyes = {} --Array for the nodes
-	local vehicleTransform = GetVehicleTransform(vehicle.id) --Grab that vehicle transform
-	local vehiclePos = vehicleTransform.pos --Position of the vehicle? I'll change this up later
-	local closest = {} --Closest node to the vehicle
-	local closestDist = 100 --Node finding distance
-	local closestIndex = 0 --Node finding index
-	for key,nodes in ipairs(nodes) do
-		local dist = VecLength(VecSub(nodes,vehiclePos)) --dump the nodes and vehicle Positions into a distance variable 
-		if dist < closestDist then --if the distance is less than the closest distance then...
-			closestDist = dist --the closest distance is the distance
-			closestIndex = key --dump that into the key index
-		end
-	end
-	closest = nodes[closestIndex]
-	local closestAI = {} --this section is here so that the closest chosen node by the AI is not the same as another vehicle choosing that node. I'm not sure if this is the best way to do this.
-	local closestAIDist = 100 --Still not sure how I'm going to do this as some of the AI needs to chose the same nodes as another vehicle.
-	local closestAIIndex = 0 --Maybe doing some kind of distance thing so if its chosen but another vehicle is further away it can still grab that node?
-	for key,ai in ipairs(ai) do --Issue being is that having the closest node be chosen will cause issues as the AI will always choose the same node. 
-		--local aiPos = vehiclePos.pos --Preventing this seems easy but its much harder
-		local dist = VecLength(VecSub(ai,vehiclePos)) --Because we don't want to remove the node from the array because other vehicles will be using it.
-		if dist < closestAIDist then --And the vehicle might return to it and have no where else to go... 
-			closestAIDist = dist --So I need to somehow exclude the node from the next search for nodes.
-			closestAIIndex = key
-		end
-	end
-	closestAI = ai[closestAIIndex]
-	eyes[1] = closest
-	eyes[2] = closestAI
+--make a function that will get the variable location.a from main_road_detection_AI.lua and set that to 
 
-	DebugWatch("Closest node: ", eyes[1])
-	DebugWatch("Closest ai: ", eyes[2])
-	DebugWatch('All of them eyes',eyes)
-	return eyes
-end
 
 
 function markLoc()
 	if GetTime() <= 5 then
-		initialPos = GetLocationTransform(nodeLoc).pos
 		initialPos = nodes --Remember! Nodes is the global get location transform
 		generalPos = VecAdd(initialPos,Vec(math.random(-0,0),0,math.random(-0,0)))
 	end
@@ -234,7 +200,7 @@ function markLoc()
 	end
 	if(aiStarted) then 
 		vecFind = Vec(1, 1 ,1)
-		if currentNode and worldPos <= vecFind then
+		if nodes and worldPos <= vecFind then
 			aiNodes = (aiNodes%#nodes)+1
 			for key,value in ipairs(aiNodes) do 
 				
